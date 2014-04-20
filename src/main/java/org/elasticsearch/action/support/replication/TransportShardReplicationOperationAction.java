@@ -38,6 +38,7 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -115,10 +116,6 @@ public abstract class TransportShardReplicationOperationAction<Request extends S
     protected abstract String executor();
 
     protected abstract PrimaryResponse<Response, ReplicaRequest> shardOperationOnPrimary(ClusterState clusterState, PrimaryOperationRequest shardRequest);
-
-    protected void preProcessReplication(ShardIterator shardIt, ReplicaRequest request) {
-
-    }
 
     protected abstract void shardOperationOnReplica(ReplicaOperationRequest shardRequest);
 
@@ -594,9 +591,6 @@ public abstract class TransportShardReplicationOperationAction<Request extends S
                 listener.onResponse(response.response());
                 return;
             }
-            shardIt.reset();
-            // make sure to call this on the state when we did the initial primary operation on
-            preProcessReplication(shardIt, response.replicaRequest());
             ShardRouting shard;
 
             // we double check on the state, if it got changed we need to make sure we take the latest one cause
@@ -633,8 +627,15 @@ public abstract class TransportShardReplicationOperationAction<Request extends S
                     }
                 }
                 shardIt.reset();
-                // we need to call it again since state has changed
-                preProcessReplication(shardIt, response.replicaRequest());
+                request.enablePotentialDup(); // safe side, cluster state changed, we might have dups
+            } else{
+                shardIt.reset();
+                while ((shard = shardIt.nextOrNull()) != null) {
+                    if (shard.state() != ShardRoutingState.STARTED) {
+                        request.enablePotentialDup();
+                    }
+                }
+                shardIt.reset();
             }
 
             // initialize the counter
