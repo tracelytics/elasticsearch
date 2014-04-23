@@ -97,14 +97,11 @@ public interface CharMatcher {
         URLWORD {
             @Override
             public boolean isTokenChar(int c) {
-                if (Character.isWhitespace(c))
-                    return true;
-
-                else if ("/-_.+|&?;=".indexOf(c) != -1)
-                    return true;
-
-                else
+                if (Character.isWhitespace(c) || "/-_.+|&?;=".indexOf(c) != -1) {
                     return false;
+                } else {
+                    return true;
+                }
             }
         },
     }
