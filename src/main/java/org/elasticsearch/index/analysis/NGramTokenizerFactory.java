@@ -57,6 +57,7 @@ public class NGramTokenizerFactory extends AbstractTokenizerFactory {
         builder.put("whitespace", CharMatcher.Basic.WHITESPACE);
         builder.put("punctuation", CharMatcher.Basic.PUNCTUATION);
         builder.put("symbol", CharMatcher.Basic.SYMBOL);
+        builder.put("urlword", CharMatcher.Basic.URLWORD);
         // Populate with unicode categories from java.lang.Character
         for (Field field : Character.class.getFields()) {
             if (!field.getName().startsWith("DIRECTIONALITY")
